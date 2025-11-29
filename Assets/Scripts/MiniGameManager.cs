@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -9,7 +9,7 @@ public class MiniGameManager : MonoBehaviour
     [System.Serializable]
     public class Entry
     {
-        public string id;
+        public string id; // Ej: "RAM"
         public GameObject miniGamePrefab;
     }
 
@@ -30,76 +30,98 @@ public class MiniGameManager : MonoBehaviour
             return;
         }
         Instance = this;
-
         Debug.Log("[MiniGameManager] Inicializado");
     }
+
+    // 👇👇👇 AQUÍ ESTABA EL ERROR: FALTABA ESCUCHAR EL EVENTO 👇👇👇
+
+    void OnEnable()
+    {
+        // Nos suscribimos al evento
+        PlacementEvents.OnComponentPlaced += HandleComponentPlaced;
+        Debug.Log("[MiniGameManager] Escuchando eventos...");
+    }
+
+    void OnDisable()
+    {
+        // Nos desuscribimos para evitar errores de memoria
+        PlacementEvents.OnComponentPlaced -= HandleComponentPlaced;
+    }
+
+    // Esta función sirve de puente entre el Evento y el StartMiniGame
+    private void HandleComponentPlaced(string id, Arrastrable item, RectTransform slotTransform)
+    {
+        Debug.Log($"[MiniGameManager] Evento recibido para: {id}");
+
+        // El evento nos da un RectTransform, pero StartMiniGame pide un CabinetSlotUI.
+        // Buscamos el script en el objeto del slot.
+        CabinetSlotUI slotScript = slotTransform.GetComponent<CabinetSlotUI>();
+
+        if (slotScript != null)
+        {
+            StartMiniGame(id, item, slotScript);
+        }
+        else
+        {
+            Debug.LogError($"[MiniGameManager] El objeto '{slotTransform.name}' tiene Tag 'Slot' pero le falta el script 'CabinetSlotUI'.");
+            // Opcional: Si solo usas física y no tienes CabinetSlotUI, aquí tendrías que cambiar la lógica.
+            // Pero como tu StartMiniGame usa 'slot.AcceptPlacementFromMinigame', es obligatorio tener el script.
+        }
+    }
+
+    // 👆👆👆 ------------------------------------------------------- 👆👆👆
 
     public void StartMiniGame(string id, Arrastrable item, CabinetSlotUI slot)
     {
         Debug.Log($"[MiniGameManager] StartMiniGame llamado con id='{id}'");
 
-        // Si ya hay un minijuego activo, destruirlo primero
         if (currentInstance != null)
         {
-            Debug.LogWarning("[MiniGameManager] Ya hay un minijuego activo, destruy�ndolo primero");
+            Debug.LogWarning("[MiniGameManager] Ya hay un minijuego activo, destruyéndolo primero");
             Destroy(currentInstance);
             currentInstance = null;
             currentMini = null;
-            Time.timeScale = 1f; // Restaurar tiempo por si acaso
+            Time.timeScale = 1f;
         }
 
         var entry = registry.Find(e => e.id == id);
+
+        // Si no encontramos el minijuego en la lista, terminamos la colocación directo
         if (entry == null || entry.miniGamePrefab == null)
         {
-            Debug.LogWarning($"[MiniGameManager] No hay prefab para id '{id}', colocando directo.");
+            Debug.LogWarning($"[MiniGameManager] No hay prefab registrado para id '{id}', colocando directo sin minijuego.");
             slot.AcceptPlacementFromMinigame(item);
             return;
         }
 
         Debug.Log($"[MiniGameManager] Instanciando prefab '{entry.miniGamePrefab.name}'");
 
-        // Instanciar en el overlayParent si existe, si no en el root de la escena
         Transform parent = overlayParent ? overlayParent : null;
         currentInstance = Instantiate(entry.miniGamePrefab, parent);
 
         Debug.Log($"[MiniGameManager] Prefab instanciado: {currentInstance.name}");
 
-        // Buscar el Canvas en el root o en los hijos
+        // Configuración automática del Canvas del Minijuego
         Canvas canvas = currentInstance.GetComponent<Canvas>();
-        if (canvas == null)
-        {
-            canvas = currentInstance.GetComponentInChildren<Canvas>(true);
-        }
+        if (canvas == null) canvas = currentInstance.GetComponentInChildren<Canvas>(true);
 
         if (canvas != null)
         {
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 999;
             canvas.overrideSorting = true;
-            Debug.Log($"[MiniGameManager] Canvas configurado: {canvas.gameObject.name}, Overlay, sortOrder=999");
-        }
-        else
-        {
-            Debug.LogWarning("[MiniGameManager] El prefab no tiene componente Canvas");
         }
 
-        // Asegurarse de que el Graphic Raycaster est� presente
         if (canvas != null && canvas.GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
         {
             canvas.gameObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
-            Debug.Log("[MiniGameManager] A�adido GraphicRaycaster al Canvas");
         }
 
-        // Asegurarse de que est� activo y al frente
         currentInstance.SetActive(true);
         currentInstance.transform.SetAsLastSibling();
 
-        // Buscar el componente IMiniGame en el root o en los hijos
         currentMini = currentInstance.GetComponent<IMiniGame>();
-        if (currentMini == null)
-        {
-            currentMini = currentInstance.GetComponentInChildren<IMiniGame>(true);
-        }
+        if (currentMini == null) currentMini = currentInstance.GetComponentInChildren<IMiniGame>(true);
 
         if (currentMini == null)
         {
@@ -108,13 +130,12 @@ public class MiniGameManager : MonoBehaviour
             return;
         }
 
-        Debug.Log("[MiniGameManager] Pausando juego (Time.timeScale = 0)");
+        Debug.Log("[MiniGameManager] Pausando juego e iniciando Minijuego");
         Time.timeScale = 0f;
 
-        Debug.Log("[MiniGameManager] Llamando a Init del minijuego");
         currentMini.Init(item, slot, (success) =>
         {
-            Debug.Log($"[MiniGameManager] Minijuego completado con success={success}");
+            Debug.Log($"[MiniGameManager] Minijuego completado. Éxito: {success}");
             Time.timeScale = 1f;
 
             if (success)
@@ -132,8 +153,6 @@ public class MiniGameManager : MonoBehaviour
 
     private void FinishMiniGame(bool success)
     {
-        Debug.Log($"[MiniGameManager] FinishMiniGame llamado con success={success}");
-
         if (currentInstance != null)
             Destroy(currentInstance);
 

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41a9f0baf1026a0479a1c3a8d2a953e0, type: 3}
+  m_Name: Datos_CPU
+  m_EditorClassIdentifier: Assembly-CSharp::ComponenteData
+  icono: {fileID: 7457414449817566465, guid: af9969f964590b44c99d43a95e6484ef, type: 3}
+  prefabDeLaPieza: {fileID: 2053702331140819169, guid: 998125118e400a0438b513566730ac79, type: 3}
+  nombrePieza: Procesador
+  descripcionEducativa: "Es el cerebro de la computadora. Se encarga de realizar
+    los c\xE1lculos y dar las \xF3rdenes a los dem\xE1s componentes para que los
+    programas y el sistema operativo funcionen."
+  especificaciones: 

@@ -10,12 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 41a9f0baf1026a0479a1c3a8d2a953e0, type: 3}
-  m_Name: Datos_RAM
+  m_Name: Datos_HDD
   m_EditorClassIdentifier: Assembly-CSharp::ComponenteData
-  icono: {fileID: -8101191495377316445, guid: f1713b5ae8d34bb4ca493350c247269e, type: 3}
-  prefabDeLaPieza: {fileID: 8472668164546048841, guid: 1b45c99ae18b61b4c8979a03878e5097, type: 3}
-  nombrePieza: Memoria RAM de 8GB
-  descripcionEducativa: "Es la memoria a corto plazo de la PC. Almacena los datos
-    que el procesador necesita YA. Si tienes poca, la PC se pondr\xE1 lenta al abrir
-    muchas ventanas."
+  icono: {fileID: 8526977525909283268, guid: c2c78defed7b3504eb6324cf9c925d87, type: 3}
+  prefabDeLaPieza: {fileID: 7662883381827036727, guid: 5bdae8560516bcf468724bb7553c3c03, type: 3}
+  nombrePieza: Disco Duro HDD
+  descripcionEducativa: "Es el almac\xE9n permanente. Aqu\xED se guardan tus juegos,
+    fotos y el sistema operativo para que no se borren al apagar la PC."
   especificaciones: 
