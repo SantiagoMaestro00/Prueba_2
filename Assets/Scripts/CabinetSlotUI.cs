@@ -1,96 +1,193 @@
 ﻿using UnityEngine;
-using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using System;
+using System.Collections; // Necesario para la animación
 
-public class CabinetSlotUI : MonoBehaviour, IDropHandler, IPointerClickHandler
+public class CabinetSlotUI : MonoBehaviour
 {
-    [Header("Tipo aceptado (RAM, CPU, Almacenamiento)")]
+    [Header("Configuración")]
     public string aceptaTipo = "RAM";
 
     [Header("Minijuego")]
     public bool requiereMinijuego = false;
-    public string minijuegoId = "CPU";
+    public string minijuegoId = "RAM";
 
-    [Header("Estado")]
-    public bool ocupado = false;
-    public Arrastrable itemColocado;
+    [Header("Visuales")]
+    public GameObject prefabInstalado;
+    public GameObject efectoExito;
 
-    [Header("Ajuste del ÍTEM dentro del slot")]
-    public Vector2 padding = new Vector2(4, 4);
-    public float rotationZForAccepted = 0f;
-    public bool fitByHeight = true;
-    public bool fillExact = false;
+    [Header("Feedback Visual")]
+    public Color colorInvisible = new Color(1f, 1f, 1f, 0f);
+    public Color colorResaltado = new Color(0.5f, 1f, 0.5f, 0.5f); // Verde
+    public Color colorAlerta = new Color(1f, 0.9f, 0.2f, 0.5f);    // Amarillo
 
-    [Header("Quitar componente")]
-    public bool permiteQuitar = true;
-    public PointerEventData.InputButton botonQuitar = PointerEventData.InputButton.Right;
+    [Range(0.5f, 5f)]
+    public float velocidadParpadeo = 2.0f; // Qué tan rápido parpadea
 
-    public void OnDrop(PointerEventData eventData)
+    private Image miImagen;
+    private bool ocupado = false;
+    private GameObject visualInstaladoActual;
+
+    // Variable para controlar la animación
+    private Coroutine animacionActual;
+
+    // --- EVENTOS ESTÁTICOS ---
+    public static event Action<string> OnAlguienAgarroPieza;
+    public static event Action OnAlguienSoltoPieza;
+
+    public static void NotificarAgarre(string tipo) => OnAlguienAgarroPieza?.Invoke(tipo);
+    public static void NotificarSoltar() => OnAlguienSoltoPieza?.Invoke();
+
+    void Awake()
     {
-        if (eventData.pointerDrag == null) return;
-        var arr = eventData.pointerDrag.GetComponent<Arrastrable>();
-        if (arr == null) return;
-        TryHandleDrop(arr);
+        miImagen = GetComponent<Image>();
+        if (miImagen != null)
+        {
+            miImagen.raycastTarget = true;
+            SetColor(colorInvisible);
+        }
     }
 
+    void OnEnable()
+    {
+        OnAlguienAgarroPieza += EvaluarPiezaArrastrada;
+        OnAlguienSoltoPieza += ApagarLuz;
+    }
+
+    void OnDisable()
+    {
+        OnAlguienAgarroPieza -= EvaluarPiezaArrastrada;
+        OnAlguienSoltoPieza -= ApagarLuz;
+    }
+
+    void EvaluarPiezaArrastrada(string tipoPiezaArrastrada)
+    {
+        if (ocupado) return;
+
+        // 1. COMPATIBLE EXACTO (VERDE)
+        if (EsCompatible(tipoPiezaArrastrada))
+        {
+            IniciarAnimacion(colorResaltado);
+        }
+        // 2. TIPO CORRECTO / MODELO INCORRECTO (AMARILLO)
+        else if (EsMismaCategoria(tipoPiezaArrastrada))
+        {
+            IniciarAnimacion(colorAlerta);
+        }
+    }
+
+    void ApagarLuz()
+    {
+        if (!ocupado)
+        {
+            DetenerAnimacion();
+            SetColor(colorInvisible);
+        }
+    }
+
+    // 👇 LÓGICA DE ANIMACIÓN 👇
+    void IniciarAnimacion(Color colorObjetivo)
+    {
+        // Si ya hay una animación corriendo, la detenemos para empezar la nueva
+        DetenerAnimacion();
+        animacionActual = StartCoroutine(RutinaParpadeo(colorObjetivo));
+    }
+
+    void DetenerAnimacion()
+    {
+        if (animacionActual != null)
+        {
+            StopCoroutine(animacionActual);
+            animacionActual = null;
+        }
+    }
+
+    IEnumerator RutinaParpadeo(Color baseColor)
+    {
+        while (true) // Bucle infinito hasta que se detenga la corrutina
+        {
+            // Mathf.PingPong crea un valor que sube y baja (como una pelota rebotando)
+            // Oscila entre 0.2 (mínimo visible) y el Alpha original del color
+            float alphaVariable = Mathf.PingPong(Time.time * velocidadParpadeo, baseColor.a - 0.2f) + 0.2f;
+
+            if (miImagen != null)
+            {
+                miImagen.color = new Color(baseColor.r, baseColor.g, baseColor.b, alphaVariable);
+            }
+
+            yield return null; // Esperar al siguiente frame
+        }
+    }
+    // 👆 ------------------ 👆
+
+    private bool EsCompatible(string tipoPieza)
+    {
+        string tPieza = (tipoPieza ?? "").Trim();
+        string tSlot = (aceptaTipo ?? "").Trim();
+        return string.Equals(tPieza, tSlot, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool EsMismaCategoria(string tipoPieza)
+    {
+        string tPieza = (tipoPieza ?? "").ToUpper();
+        string tSlot = (aceptaTipo ?? "").ToUpper();
+
+        if (tPieza.Contains("RAM") && tSlot.Contains("RAM")) return true;
+        if (tPieza.Contains("CPU") && tSlot.Contains("CPU")) return true;
+        if ((tPieza.Contains("HDD") || tPieza.Contains("SSD")) &&
+            (tSlot.Contains("HDD") || tSlot.Contains("SSD"))) return true;
+
+        return false;
+    }
+
+    private void SetColor(Color c)
+    {
+        if (miImagen != null) miImagen.color = c;
+    }
+
+    // --- INSTALACIÓN ---
     public bool TryHandleDrop(Arrastrable arr)
     {
-        Debug.Log($"[CabinetSlotUI] TryHandleDrop llamado. Tipo={arr.tipoComponente}, AceptaTipo={aceptaTipo}, RequiereMinijuego={requiereMinijuego}");
+        if (ocupado) return false;
+        if (!EsCompatible(arr.tipoComponente)) return false;
 
-        if (ocupado)
-        {
-            Debug.Log("[CabinetSlotUI] Slot ya ocupado");
-            arr.VolverAlInicio();
-            return false;
-        }
-
-        var tipo = (arr.tipoComponente ?? "").Trim();
-        if (!string.Equals(tipo, (aceptaTipo ?? "").Trim(), StringComparison.OrdinalIgnoreCase))
-        {
-            Debug.Log($"[CabinetSlotUI] Tipo no coincide: '{tipo}' != '{aceptaTipo}'");
-            arr.VolverAlInicio();
-            return false;
-        }
+        ApagarLuz(); // Detiene la animación e invisibiliza
 
         if (requiereMinijuego && MiniGameManager.Instance != null)
-        {
-            Debug.Log($"[CabinetSlotUI] Iniciando minijuego con id='{minijuegoId}'");
             MiniGameManager.Instance.StartMiniGame(minijuegoId, arr, this);
-        }
         else
-        {
-            Debug.Log("[CabinetSlotUI] Colocando directo sin minijuego");
-            arr.AttachToSlot((RectTransform)transform, rotationZForAccepted, padding, fitByHeight, fillExact);
-            ocupado = true;
-            itemColocado = arr;
-            arr.MarcarColocadoEnSlot();
-        }
+            AcceptPlacementFromMinigame(arr);
+
         return true;
     }
 
     public void AcceptPlacementFromMinigame(Arrastrable arr)
     {
-        Debug.Log("[CabinetSlotUI] AcceptPlacementFromMinigame llamado");
-
         if (ocupado) return;
-        arr.AttachToSlot((RectTransform)transform, rotationZForAccepted, padding, fitByHeight, fillExact);
         ocupado = true;
-        itemColocado = arr;
-        arr.MarcarColocadoEnSlot();
-    }
+        ApagarLuz();
 
-    public void OnPointerClick(PointerEventData eventData)
-    {
-        if (!permiteQuitar || itemColocado == null) return;
-        if (eventData.button != botonQuitar) return;
-        QuitarComponente();
+        if (arr != null) Destroy(arr.gameObject);
+
+        if (prefabInstalado != null)
+        {
+            visualInstaladoActual = Instantiate(prefabInstalado, transform);
+            visualInstaladoActual.transform.localPosition = Vector3.zero;
+            ItemAutoFit autoFit = visualInstaladoActual.GetComponent<ItemAutoFit>();
+            if (autoFit != null) autoFit.FitIntoSlot(GetComponent<RectTransform>());
+        }
+
+        if (efectoExito != null)
+        {
+            GameObject particulas = Instantiate(efectoExito, transform.position, Quaternion.identity);
+            Destroy(particulas, 2f);
+        }
     }
 
     public void QuitarComponente()
     {
-        if (itemColocado == null) return;
-        itemColocado.RestoreToHome();
-        itemColocado = null;
+        if (visualInstaladoActual != null) Destroy(visualInstaladoActual);
         ocupado = false;
+        ApagarLuz();
     }
 }

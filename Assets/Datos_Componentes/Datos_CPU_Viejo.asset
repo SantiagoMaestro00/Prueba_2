@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41a9f0baf1026a0479a1c3a8d2a953e0, type: 3}
+  m_Name: Datos_CPU_Viejo
+  m_EditorClassIdentifier: Assembly-CSharp::ComponenteData
+  icono: {fileID: 5940897008932670340, guid: 06333faf0aeb03b4da102587edfb7474, type: 3}
+  prefabDeLaPieza: {fileID: 2053702331140819169, guid: 69302da1bf08dc34b99ed846625f6afb, type: 3}
+  nombrePieza: Intel Core i3 (Socket 1150)
+  descripcionEducativa: "Procesador de gama entrada de hace varias generaciones.
+    Requiere una placa madre con z\xF3calo 1150"
+  especificaciones: 

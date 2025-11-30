@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41a9f0baf1026a0479a1c3a8d2a953e0, type: 3}
+  m_Name: Datos_RAM
+  m_EditorClassIdentifier: Assembly-CSharp::ComponenteData
+  icono: {fileID: -5366930354112296916, guid: 42e2391edd6679c41a4cac95c1349df2, type: 3}
+  prefabDeLaPieza: {fileID: 8472668164546048841, guid: fb24c8aecb6544c4a9e17f8fd5b44fb4, type: 3}
+  nombrePieza: RAM Gamer 16GB DDR4
+  descripcionEducativa: "El est\xE1ndar actual para el alto rendimiento. Su tecnolog\xEDa
+    DDR4 permite mayores velocidades y eficiencia energ\xE9tica. Ideal para correr
+    juegos pesados y multitarea sin congelamientos."
+  especificaciones: 16 GB - 3200 MHz

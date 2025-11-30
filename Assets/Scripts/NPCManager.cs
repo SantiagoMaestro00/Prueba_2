@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI; // Necesario para manipular Textos y Paneles
 using System.Collections;
 
 [DisallowMultipleComponent]
@@ -17,20 +18,27 @@ public class NPCManager : MonoBehaviour
 
     public static NPCManager Instance;
 
-    [Header("Datos")]
-    public ClienteData[] clientes;
-    public Pedido[] pedidos;
+    [Header("Datos Generales")]
+    public ClienteData[] clientes; // Skins variadas
+    public Pedido[] pedidos;       // Misiones en orden
 
-    [Header("Referencias visibles")]
+    [Header("Referencias Visibles")]
     public SpriteRenderer clienteSpriteRenderer;
-    public NPCRequestPanel panel; // Conexión al script del panel
+    public NPCRequestPanel panel;
 
     [Header("Animator Override")]
     public AnimationClip baseIdleClip;
     public AnimationClip baseWalkClip;
 
+    [Header("Fin del Juego")]
+    public GameObject panelVictoria;
+    public Text textoPuntajeFinal;
+
     private ClienteData clienteActual;
     private Pedido pedidoActual;
+
+    // Variable para llevar el control de la misión actual
+    private int indicePedidoActual = 0;
 
     void Awake()
     {
@@ -46,27 +54,41 @@ public class NPCManager : MonoBehaviour
     void Start()
     {
         if (Instance != this) return;
+
+        if (panelVictoria != null) panelVictoria.SetActive(false);
+
         StartCoroutine(InitNextFrame());
     }
 
     IEnumerator InitNextFrame()
     {
         yield return null;
-        MostrarClienteAleatorio();
+        MostrarSiguienteCliente();
     }
 
-    public void MostrarClienteAleatorio()
+    public void MostrarSiguienteCliente()
     {
         if (clientes == null || clientes.Length == 0) return;
         if (pedidos == null || pedidos.Length == 0) return;
 
-        // SELECCIÓN SIMPLE (SIN NIVELES)
+        // 🛑 1. VERIFICAR SI YA TERMINAMOS EL JUEGO
+        if (indicePedidoActual >= pedidos.Length)
+        {
+            Debug.Log("🎉 [NPCManager] ¡No hay más pedidos! Juego Completado.");
+            EjecutarVictoria();
+            return;
+        }
+
+        // 🎨 2. ELEGIR SKIN ALEATORIA
         int clienteId = Random.Range(0, clientes.Length);
-        int pedidoId = Random.Range(0, pedidos.Length);
-
         clienteActual = clientes[clienteId];
-        pedidoActual = pedidos[pedidoId];
 
+        // 📜 3. ELEGIR PEDIDO EN ORDEN SECUENCIAL
+        pedidoActual = pedidos[indicePedidoActual];
+
+        Debug.Log($"[NPCManager] Generando Cliente. Misión #{indicePedidoActual + 1}: {pedidoActual.name}");
+
+        // 4. CONFIGURAR ANIMACIONES
         var anim = clienteSpriteRenderer.GetComponent<Animator>();
         if (anim == null) anim = GetComponentInChildren<Animator>(true);
 
@@ -85,7 +107,6 @@ public class NPCManager : MonoBehaviour
             if (clienteActual.spriteCaminar != null)
                 clienteSpriteRenderer.sprite = clienteActual.spriteCaminar;
         }
-        Debug.Log($"[NPCManager] Cliente: {clienteActual.nombre} | Pedido: {pedidoActual.name}");
     }
 
     public void MostrarPedidoActual()
@@ -96,19 +117,36 @@ public class NPCManager : MonoBehaviour
 
     public void SolicitarSiguienteCliente(float tiempoEspera = 3f)
     {
+        indicePedidoActual++;
         StartCoroutine(GenerarClienteConRetraso(tiempoEspera));
     }
 
     private IEnumerator GenerarClienteConRetraso(float delay)
     {
         yield return new WaitForSeconds(delay);
-        MostrarClienteAleatorio();
+        MostrarSiguienteCliente();
 
-        if (clienteSpriteRenderer != null)
+        if (indicePedidoActual < pedidos.Length && clienteSpriteRenderer != null)
         {
             var movement = clienteSpriteRenderer.GetComponent<NPCMovement>();
             if (movement == null) movement = clienteSpriteRenderer.GetComponentInParent<NPCMovement>();
             if (movement != null) movement.ReiniciarCiclo();
+        }
+    }
+
+    // --- LÓGICA DE VICTORIA ---
+    void EjecutarVictoria()
+    {
+        if (panelVictoria != null)
+        {
+            panelVictoria.SetActive(true);
+
+            // 👇 AQUÍ ESTÁ LA CORRECCIÓN 👇
+            if (PlayerProgress.Instance != null && textoPuntajeFinal != null)
+            {
+                // Usamos GetMonedas() en lugar de monedasActuales
+                textoPuntajeFinal.text = "Ganancias Totales: $" + PlayerProgress.Instance.GetMonedas();
+            }
         }
     }
 

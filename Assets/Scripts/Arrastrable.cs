@@ -1,65 +1,97 @@
 ﻿using UnityEngine;
-using UnityEngine.EventSystems; // NECESARIO PARA DETECTAR LA UI
-using System.Collections.Generic; // NECESARIO PARA LAS LISTAS
+using UnityEngine.EventSystems;
+using System.Collections;
+using System.Collections.Generic;
 
 public class Arrastrable : MonoBehaviour
 {
-    // --- 1. COMPATIBILIDAD ---
+    // --- 1. CONFIGURACIÓN ---
     [Header("Identificación")]
     public string tipoComponente;
 
-    // --- 2. VARIABLES DE MOVIMIENTO ---
+    // --- 2. VARIABLES INTERNAS ---
     private Vector3 offset;
     private float zCoord;
     private bool estaSiendoArrastrado = false;
     private Vector3 startPos;
 
+    private Vector3 escalaOriginal;
+    private SpriteRenderer mySprite;
+    private int ordenCapaOriginal;
+
     void Start()
     {
         startPos = transform.position;
+        escalaOriginal = transform.localScale;
+        mySprite = GetComponent<SpriteRenderer>();
+        if (mySprite) ordenCapaOriginal = mySprite.sortingOrder;
+    }
+
+    // --- CLIC DERECHO: CANCELAR ---
+    void OnMouseOver()
+    {
+        if (!estaSiendoArrastrado && Input.GetMouseButtonDown(1))
+        {
+            // Avisamos que soltamos la pieza (para apagar luces verdes por si acaso)
+            CabinetSlotUI.NotificarSoltar();
+
+            Debug.Log("Cancelando pieza.");
+            RestoreToHome();
+        }
     }
 
     void OnMouseDown()
     {
-        zCoord = Camera.main.WorldToScreenPoint(gameObject.transform.position).z;
-        offset = gameObject.transform.position - GetMouseWorldPos();
-        estaSiendoArrastrado = true;
+        if (Input.GetMouseButton(0))
+        {
+            zCoord = Camera.main.WorldToScreenPoint(gameObject.transform.position).z;
+            offset = gameObject.transform.position - GetMouseWorldPos();
+            estaSiendoArrastrado = true;
+
+            // Visual
+            transform.localScale = escalaOriginal * 1.2f;
+            if (mySprite) mySprite.sortingOrder = 100;
+
+            // 👇 NUEVO: AVISAR A LAS RANURAS "¡ENCIÉNDANSE!" 👇
+            CabinetSlotUI.NotificarAgarre(this.tipoComponente);
+        }
     }
 
     void OnMouseDrag()
     {
-        transform.position = GetMouseWorldPos() + offset;
+        if (estaSiendoArrastrado)
+        {
+            transform.position = GetMouseWorldPos() + offset;
+        }
     }
 
-    // --- 3. LÓGICA DE SOLTAR (HÍBRIDA) ---
     void OnMouseUp()
     {
+        if (!estaSiendoArrastrado) return;
         estaSiendoArrastrado = false;
+
+        // Restaurar visual
+        transform.localScale = escalaOriginal;
+        if (mySprite) mySprite.sortingOrder = ordenCapaOriginal;
+
+        // 👇 NUEVO: AVISAR A LAS RANURAS "¡APÁGUENSE!" 👇
+        CabinetSlotUI.NotificarSoltar();
+
+        if (Input.GetMouseButtonUp(0) == false) return;
+
         bool encontreSlot = false;
 
-        Debug.Log("--- SOLTANDO PIEZA ---");
-
-        // ========================================================================
-        // INTENTO A: BUSCAR EN LA INTERFAZ (UI) <-- ¡ESTO ES LO QUE FALTABA!
-        // ========================================================================
+        // A. UI RAYCAST
         if (EventSystem.current != null)
         {
-            PointerEventData pointerData = new PointerEventData(EventSystem.current)
-            {
-                position = Input.mousePosition
-            };
-
+            PointerEventData pointerData = new PointerEventData(EventSystem.current) { position = Input.mousePosition };
             List<RaycastResult> resultadosUI = new List<RaycastResult>();
             EventSystem.current.RaycastAll(pointerData, resultadosUI);
 
             foreach (RaycastResult resultado in resultadosUI)
             {
-                Debug.Log("UI Detectada: " + resultado.gameObject.name);
-
-                // Buscamos si el objeto UI tiene el tag "Slot"
                 if (resultado.gameObject.CompareTag("Slot"))
                 {
-                    Debug.Log("¡ENCONTRÉ EL SLOT EN LA UI!");
                     ProcesarSlot(resultado.gameObject);
                     encontreSlot = true;
                     break;
@@ -67,9 +99,7 @@ public class Arrastrable : MonoBehaviour
             }
         }
 
-        // ========================================================================
-        // INTENTO B: BUSCAR EN LA FÍSICA (Si no encontramos nada en la UI)
-        // ========================================================================
+        // B. FÍSICA RAYCAST
         if (!encontreSlot)
         {
             Vector2 mousePos2D = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -77,11 +107,9 @@ public class Arrastrable : MonoBehaviour
 
             foreach (Collider2D col in cosasFisicas)
             {
-                if (col.gameObject == gameObject) continue; // Ignorarnos a nosotros mismos
-
+                if (col.gameObject == gameObject) continue;
                 if (col.CompareTag("Slot"))
                 {
-                    Debug.Log("¡ENCONTRÉ EL SLOT EN FÍSICA!");
                     ProcesarSlot(col.gameObject);
                     encontreSlot = true;
                     break;
@@ -89,23 +117,67 @@ public class Arrastrable : MonoBehaviour
             }
         }
 
-        // Si fallaron los dos intentos, regresamos
         if (!encontreSlot)
         {
-            Debug.Log("No encontré nada. Regresando.");
             VolverAlInicio();
         }
     }
 
-    // Función auxiliar para no repetir código
     void ProcesarSlot(GameObject slotObject)
     {
+        CabinetSlotUI slotScript = slotObject.GetComponent<CabinetSlotUI>();
+
+        if (slotScript != null)
+        {
+            string miTipo = (this.tipoComponente ?? "").Trim();
+            string tipoAceptado = (slotScript.aceptaTipo ?? "").Trim();
+
+            if (miTipo != tipoAceptado)
+            {
+                Debug.LogWarning($"[Arrastrable] Incompatible: {miTipo} vs {tipoAceptado}");
+                if (NotificationManager.Instance != null)
+                {
+                    string mensajeError = GenerarMensajeEducativo(miTipo, tipoAceptado);
+                    NotificationManager.Instance.MostrarError(mensajeError);
+                }
+                StartCoroutine(AnimacionRechazo());
+                return;
+            }
+        }
+
         RectTransform slotTransform = slotObject.GetComponent<RectTransform>();
         if (slotTransform != null)
         {
             PlacementEvents.ComponentPlaced(this.tipoComponente, this, slotTransform);
-            Debug.Log("Evento enviado al MiniGameManager.");
         }
+    }
+
+    IEnumerator AnimacionRechazo()
+    {
+        Color colorOriginal = Color.white;
+        if (mySprite != null) { colorOriginal = mySprite.color; mySprite.color = Color.red; }
+
+        Vector3 posicionBase = transform.position;
+        float duracion = 0.4f;
+        float tiempo = 0;
+
+        while (tiempo < duracion)
+        {
+            transform.position = posicionBase + (Vector3)(UnityEngine.Random.insideUnitCircle * 0.15f);
+            tiempo += Time.deltaTime;
+            yield return null;
+        }
+
+        if (mySprite != null) mySprite.color = colorOriginal;
+        VolverAlInicio();
+    }
+
+    string GenerarMensajeEducativo(string mio, string slot)
+    {
+        if (mio.Contains("DDR3") && slot.Contains("DDR4")) return "¡ERROR! Esta RAM es DDR3 y no encaja en DDR4.";
+        if (mio.Contains("1150") && slot.Contains("1200")) return "¡INCOMPATIBLE! Socket incorrecto.";
+        if (mio.Contains("IDE") && slot.Contains("SATA")) return "¡OBSOLETO! El disco IDE no entra aquí.";
+        return $"Error: {mio} no va en {slot}.";
     }
 
     private Vector3 GetMouseWorldPos()
@@ -115,8 +187,12 @@ public class Arrastrable : MonoBehaviour
         return Camera.main.ScreenToWorldPoint(mousePoint);
     }
 
-    // --- 4. FUNCIONES DE COMPATIBILIDAD ---
-    public void VolverAlInicio() { transform.position = startPos; }
+    public void VolverAlInicio()
+    {
+        transform.position = startPos;
+        transform.localScale = escalaOriginal;
+    }
+
     public void RestoreToHome() { Destroy(gameObject); }
     public void MarcarColocadoEnSlot()
     {

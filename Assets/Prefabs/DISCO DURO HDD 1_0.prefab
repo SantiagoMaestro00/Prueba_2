@@ -104,7 +104,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c29b35e50bb1e748904a6573039cc21, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Arrastrable
-  tipoComponente: HDD
+  tipoComponente: HDD_SATA
 --- !u!61 &3076935211035891414
 BoxCollider2D:
   m_ObjectHideFlags: 0

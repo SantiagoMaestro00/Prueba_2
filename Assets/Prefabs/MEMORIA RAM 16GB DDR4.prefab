@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 1306796003584609471}
   - component: {fileID: -3208195836082441072}
   m_Layer: 0
-  m_Name: MEMORIA RAM 8GB_0
+  m_Name: MEMORIA RAM 16GB DDR4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -31,14 +31,14 @@ RectTransform:
   m_GameObject: {fileID: 8472668164546048841}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.3, y: 0.3, z: 1}
+  m_LocalScale: {x: 0.7, y: 0.7, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 288.6847, y: 218.4711}
+  m_AnchoredPosition: {x: 287.88, y: 218.87363}
   m_SizeDelta: {x: 9.1534, y: 3.9005}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!212 &4813536090921006073
@@ -88,7 +88,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 100
-  m_Sprite: {fileID: -8101191495377316445, guid: f1713b5ae8d34bb4ca493350c247269e, type: 3}
+  m_Sprite: {fileID: -5366930354112296916, guid: 42e2391edd6679c41a4cac95c1349df2, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -161,7 +161,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c29b35e50bb1e748904a6573039cc21, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Arrastrable
-  tipoComponente: RAM_DDR3
+  tipoComponente: RAM_DDR4
 --- !u!61 &-3208195836082441072
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -196,11 +196,11 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: -0.0000072717667, y: -0.010054946}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 9, y: 3.72}
+    oldSize: {x: 3.24, y: 1.07}
     newSize: {x: 9, y: 3.72}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
